@@ -1,30 +1,36 @@
 import streamlit as st
 from streamlit_js_eval import streamlit_js_eval
 
-st.title("🌍 Test posizione utente")
+st.title("📍 Geolocalizzazione sicura (con postMessage)")
 
 st.markdown("""
 <script>
 navigator.geolocation.getCurrentPosition(
     function(position) {
-        window.latitude = position.coords.latitude;
-        window.longitude = position.coords.longitude;
+        const data = {
+            type: 'coords',
+            lat: position.coords.latitude,
+            lon: position.coords.longitude
+        };
+        window.parent.postMessage(data, "*");
     },
     function(error) {
-        window.latitude = null;
-        window.longitude = null;
+        const data = {
+            type: 'coords',
+            lat: null,
+            lon: null
+        };
+        window.parent.postMessage(data, "*");
     }
 );
 </script>
 """, unsafe_allow_html=True)
 
-coords = streamlit_js_eval(
-    js_expressions="({lat: window.latitude, lon: window.longitude})",
-    key="geo-test"
-)
+# Ricevi il messaggio JS
+coords = streamlit_js_eval(message=True, key="geolocation")
 
-if coords and coords.get("lat") is not None:
-    st.success(f"✅ Posizione: {coords['lat']}, {coords['lon']}")
+if coords and coords.get("type") == "coords" and coords.get("lat") is not None:
+    st.success(f"✅ Posizione rilevata: {coords['lat']}, {coords['lon']}")
     st.map([{"lat": coords["lat"], "lon": coords["lon"]}])
 else:
-    st.warning("🕒 Aspettando l'autorizzazione per la posizione...")
+    st.warning("🕒 In attesa dell'autorizzazione o dei dati...")
